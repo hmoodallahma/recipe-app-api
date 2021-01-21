@@ -9,16 +9,13 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = get_user_model()
         fields = ('email', 'password', 'name')
-        extra_kwargs = {'password': 
-                {'write_only': True,
-                'min_length': 5}
-            }
+        extra_kwargs = {'password': {'write_only': True, 'min_length': 5}}
 
     def create(self, validated_data):
         """Create a new user with encrypted password and return it"""
         user = get_user_model().objects.create_user(**validated_data)
-        user.set_password(user.set_password(validated_data['password']))
-        print(user.set_password(validated_data['password']))
+        user.set_password(validated_data['password'])
+
         user.save()
         return user
 
@@ -36,8 +33,6 @@ class AuthTokenSerializer(serializers.Serializer):
         """Validate and authenticate the user"""
         email = attrs.get('email')
         password = attrs.get('password')
-        
-
         user = authenticate(
             request=self.context.get("request"),
             username=email,

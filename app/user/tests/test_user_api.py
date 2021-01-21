@@ -3,7 +3,6 @@ from django.contrib.auth import get_user_model
 from django.urls import reverse
 from rest_framework.test import APIClient
 from rest_framework import status
-import time
 
 
 CREATE_USER_URL = reverse('user:create')
@@ -11,7 +10,7 @@ TOKEN_URL = reverse('user:token')
 
 
 def create_user(**params):
-    return get_user_model().objects.create(**params)
+    return get_user_model().objects.create_user(**params)
 
 
 class PublicUserApiTest(TestCase):
@@ -19,7 +18,6 @@ class PublicUserApiTest(TestCase):
 
     def setUp(self):
         self.client = APIClient()
-        self.user_test = create_user(**{"email": "tesaaat@test.com", "password": "testestpass123"})
 
     def test_create_valid_user_successful(self):
         """Test creating user with valid payload is successful"""
@@ -61,30 +59,39 @@ class PublicUserApiTest(TestCase):
         user_exists = get_user_model().objects.filter(email=payload['email'])
         self.assertFalse(user_exists)
 
+    def test_login_for_user(self):
+        """Test new user can log in with credentials"""
+        payload = {"email": "test@test.com", "password": "testestpass123"}
+        create_user(**payload)
+        res = self.client.login(username=payload['email'],
+                                password=payload['password'])
+        self.assertEqual(res, True)
+        self.client.logout()
+
     def test_create_token_for_user(self):
         """Test that a token is created for the user"""
-        # payload = {"email": "test@test.com", "password": "testestpass123"}
-        # u = create_user(**payload)
-       
-        res = self.client.post(TOKEN_URL, {'email': self.user_test.email, 'password': self.user_test.password})
-        
-        print(res.data)
+        payload = {
+                   "email": "tewwst@test.com",
+                   "password": "PROBLEMtestestpass123"
+                   }
+        create_user(**payload)
+        res = self.client.post(TOKEN_URL, payload)
+        self.assertIn('token', res.data)
         self.assertEqual(res.status_code, status.HTTP_200_OK)
-        self.assertContains('token', res.data)
-       
 
     def test_create_invalid_credentials(self):
-        """Test that token is not created when invalid credentials provided"""
-         
+        """Test that token is not created
+        when invalid credentials provided"""
         create_user(email='carlos@test.com', password='password123123')
-        res = self.client.post(TOKEN_URL, {'email':'carlos@test.com', 'password': 'wrongpass'})
-
+        wrongload = {'email': 'carlos@test.com', 'password': 'wrongpass'}
+        res = self.client.post(TOKEN_URL, wrongload)
         self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertNotIn('token', res.data)
 
     def test_token_no_user(self):
-        """Test that no token is created if there is no user with credentials"""
-        payload = {'email':'carlos@test.com', 'password': 'wrongpass'}
+        """Test that no token is created
+        if there is no user with credentials"""
+        payload = {'email': 'carlos@test.com', 'password': 'wrongpass'}
         res = self.client.post(TOKEN_URL, payload)
 
         self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
